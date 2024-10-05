@@ -1,0 +1,74 @@
+---
+- hosts: amazon_linux_servers
+  become: yes
+  tasks:
+
+    - name: Install dependencies using yum
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - curl
+        - gcc-c++
+        - make
+        - openssl-devel
+
+    - name: Install NVM
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+      args:
+        creates: /home/ec2-user/.nvm/nvm.sh
+
+    - name: Load NVM environment
+      shell: |
+        export NVM_DIR="/home/ec2-user/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        source ~/.bashrc
+      environment:
+        NVM_DIR: "/home/ec2-user/.nvm"
+
+    - name: Install Node.js 16.x
+      shell: |
+        export NVM_DIR="/home/ec2-user/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm install 16
+        nvm alias default 16
+        source ~/.bashrc
+      environment:
+        NVM_DIR: "/home/ec2-user/.nvm"
+
+    - name: Verify Node.js and npm versions
+      shell: |
+        export NVM_DIR="/home/ec2-user/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        source ~/.bashrc
+        node -v && npm -v
+      environment:
+        NVM_DIR: "/home/ec2-user/.nvm"
+      args:
+        executable: /bin/bash
+      register: node_version_output
+    - debug:
+        var: node_version_output.stdout
+
+    - name: Install PM2 globally
+      shell: |
+        export NVM_DIR="/home/ec2-user/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        source ~/.bashrc
+        npm install -g pm2
+      environment:
+        NVM_DIR: "/home/ec2-user/.nvm"
+      args:
+        executable: /bin/bash
+
+    - name: Start the application using PM2
+      shell: |
+        export NVM_DIR="/home/ec2-user/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        source ~/.bashrc
+        pm2 start /home/ec2-user/sample-node-project-master/app.js
+      environment:
+        NVM_DIR: "/home/ec2-user/.nvm"
+      args:
+        executable: /bin/bash
